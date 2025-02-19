@@ -2,12 +2,10 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common'; 
 import { HeaderComponent } from './components/header/header.component';
 import { SearchComponent } from './components/search/search.component';
-import { StockDisplayComponent } from './components/stock-display/stock-display.component';
 import { MarketStatusComponent } from './components/market-status/market-status.component';
 import { AboutMeComponent } from './components/about-me/about-me.component';
-import { StockInfoComponent } from './components/stock-info-profit/stock-info-profit.component';
 import { PortfoliosComponent } from './components/portfolios/portfolios.component';
-import { StockInfoMixComponent } from './components/stock-info-mix/stock-info-mix.component';
+import { StockInfoMixComponent } from './components/stock-info/stock-info-mix/stock-info-mix.component';
 
 @Component({
   selector: 'app-root',
@@ -16,10 +14,8 @@ import { StockInfoMixComponent } from './components/stock-info-mix/stock-info-mi
     CommonModule, 
     HeaderComponent, 
     SearchComponent, 
-    StockDisplayComponent, 
     MarketStatusComponent, 
     AboutMeComponent, 
-    StockInfoComponent, 
     PortfoliosComponent,
     StockInfoMixComponent,
   ],
@@ -27,16 +23,7 @@ import { StockInfoMixComponent } from './components/stock-info-mix/stock-info-mi
     <app-header (navigate)="onNavigate($event)"></app-header>
     <main class="container">
 
-      <ng-container *ngIf="selectedView === 'stocks2'">
-        <app-stock-info></app-stock-info>
-      </ng-container>
-
       <ng-container *ngIf="selectedView === 'stocks'">
-        <app-search (search)="onSearch($event)"></app-search>
-        <app-stock-display [symbol]="selectedSymbol"></app-stock-display>
-      </ng-container>
-
-      <ng-container *ngIf="selectedView === 'stocks3'">
         <app-search (search)="onSearch($event)"></app-search>
         <app-stock-info-mix 
           [ticker]="selectedSymbol" 
@@ -69,7 +56,7 @@ import { StockInfoMixComponent } from './components/stock-info-mix/stock-info-mi
 export class AppComponent {
   selectedSymbol: string = '';
   selectedStockName: string = ''; // Propiedad para el nombre de la acción
-  selectedView: string = 'stocks3'; 
+  selectedView: string = 'stocks'; 
 
   constructor() {}
 
