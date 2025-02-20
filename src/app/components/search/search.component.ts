@@ -70,18 +70,33 @@ export class SearchComponent {
 
   constructor(private stockService: AlphaVantageService) {}
 
+  //Finhub
   onInputChange() {
     if (this.symbol.length > 0) {
       this.stockService.searchSymbols(this.symbol).subscribe(response => {
-        this.suggestions = response.bestMatches?.map((match: any) => ({
-          symbol: match['1. symbol'],
-          name: match['2. name']
-        })) || [];
+        this.suggestions = response.result?.map((match: any) => ({
+          symbol: match.symbol,
+          name: match.description
+        })) || [];              
       });
     } else {
       this.suggestions = [];
     }
   }
+
+  //AlphaVantage
+  // onInputChange() {
+  //   if (this.symbol.length > 0) {
+  //     this.stockService.searchSymbols(this.symbol).subscribe(response => {
+  //       this.suggestions = response.bestMatches?.map((match: any) => ({
+  //         symbol: match['1. symbol'],
+  //         name: match['2. name']
+  //       })) || [];
+  //     });
+  //   } else {
+  //     this.suggestions = [];
+  //   }
+  // }
 
   // Se emite el objeto completo al seleccionar una sugerencia
   selectSymbol(suggestion: { symbol: string; name: string }) {

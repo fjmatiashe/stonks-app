@@ -15,7 +15,7 @@ selector: 'app-stock-info-mix',
 standalone: true,
 imports: [CommonModule, FormsModule, StockChartComponent, HistoricalDataComponent, AnalystRecommendationsComponent, FundamentalsComponent],
 template: `
-    <h1 class="title" *ngIf="stockName">{{ stockName }}</h1>
+    <h1 class="title">{{ stockName || 'Apple Inc.' }}</h1>
     <!-- Gráfico -->
     <app-stock-chart [historicalData]="historicalData"></app-stock-chart>
     <!-- Columnas de datos -->
@@ -52,8 +52,9 @@ styles: [`
 `]
 })
 export class StockInfoMixComponent implements OnInit, OnChanges {
-@Input() ticker: string = '';
-@Input() stockName: string = '';
+
+    @Input() ticker: string = '';
+    @Input() stockName: string = '';
 
 historicalData: HistoricalData[] = [];
 errorMessage = '';
@@ -75,13 +76,14 @@ lastYearNetIncome = 0;
 constructor(private stockService: AlphaVantageService) {}
 
 ngOnInit(): void {
-    // Se puede llamar a onSearch() si hay un ticker por defecto.
-}
+    }
 
 ngOnChanges(changes: SimpleChanges): void {
     if (changes['ticker'] && changes['ticker'].currentValue) {
-    this.onSearch();
-    }
+        const nuevoTicker = changes['ticker'].currentValue.trim();
+        this.ticker = nuevoTicker || '';
+        this.onSearch();
+}
 }
 
 onSearch(): void {

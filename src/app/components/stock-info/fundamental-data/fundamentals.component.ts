@@ -33,32 +33,33 @@ template: `
     </div>
 `,
 styles: [`
+    h2 { text-align: center; }
     .fundamentals { 
         padding: 0.5rem; 
         border: 1px solid #ddd; 
         border-radius: 5px; 
-        width: 27.6rem;
+        width: 29.6rem;
         height: 20rem;
     }
     .fundamentals-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
     }
     .fundamentals-col {
-    border: 1px solid #ccc;
-    padding: 0.5rem;
-    border-radius: 5px;
-    background: #fff;
+        border: 1px solid #ccc;
+        padding: 0.5rem;
+        border-radius: 5px;
+        background: #fff;
     }
     .fundamentals-col h3 {
-    margin-top: 0;
-    font-size: 1.2rem;
-    text-align: center;
-    background-color: #f4f4f4;
-    padding: 0.3rem;
-    border-radius: 3px;
+        margin-top: 0;
+        font-size: 1.2rem;
+        text-align: center;
+        background-color: #f4f4f4;
+        padding: 0.3rem;
+        border-radius: 3px;
     }
     .per { text-align: center; }
 `]

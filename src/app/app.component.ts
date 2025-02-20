@@ -6,6 +6,7 @@ import { MarketStatusComponent } from './components/market-status/market-status.
 import { AboutMeComponent } from './components/about-me/about-me.component';
 import { PortfoliosComponent } from './components/portfolios/portfolios.component';
 import { StockInfoMixComponent } from './components/stock-info/stock-info-mix/stock-info-mix.component';
+import { AlphaVantageService } from './services/alpha-vantage.service';
 
 @Component({
   selector: 'app-root',
@@ -54,19 +55,48 @@ import { StockInfoMixComponent } from './components/stock-info/stock-info-mix/st
   `]
 })
 export class AppComponent {
-  selectedSymbol: string = '';
-  selectedStockName: string = ''; // Propiedad para el nombre de la acción
+  selectedSymbol: string = 'AAPL';
+  selectedStockName: string = 'Apple Inc.';
   selectedView: string = 'stocks'; 
 
-  constructor() {}
+  constructor(private stockService: AlphaVantageService) {}
 
   onNavigate(view: string): void {
     this.selectedView = view;
   }
 
-  // Ahora se recibe un objeto con symbol y name
+  //FINhub
   onSearch(data: { symbol: string; name: string }): void {
     this.selectedSymbol = data.symbol;
-    this.selectedStockName = data.name;
+    if (data.name.trim() === '') {
+      this.stockService.searchSymbols(data.symbol).subscribe(response => {
+        const bestMatch = response.result && response.result[0];
+        this.selectedStockName = bestMatch && bestMatch.description ? bestMatch.description : data.symbol;
+      }, err => {
+        console.error('Error al buscar el nombre de la acción', err);
+        this.selectedStockName = data.symbol;
+      });
+      
+    } else {
+      this.selectedStockName = data.name;
+    }
   }
+
+  //AlphaVantage
+  // onSearch(data: { symbol: string; name: string }): void {
+  //   this.selectedSymbol = data.symbol;
+  //   if (data.name.trim() === '') {
+  //     // Si no se recibió un nombre, buscamos el símbolo para obtener el nombre completo
+  //     this.stockService.searchSymbols(data.symbol).subscribe(response => {
+  //       const bestMatch = response.bestMatches && response.bestMatches[0];
+  //       this.selectedStockName = bestMatch && bestMatch['2. name'] ? bestMatch['2. name'] : data.symbol;
+  //     }, err => {
+  //       console.error('Error al buscar el nombre de la acción', err);
+  //       // En caso de error, se usa el símbolo como fallback
+  //       this.selectedStockName = data.symbol;
+  //     });
+  //   } else {
+  //     this.selectedStockName = data.name;
+  //   }
+  // }
 }

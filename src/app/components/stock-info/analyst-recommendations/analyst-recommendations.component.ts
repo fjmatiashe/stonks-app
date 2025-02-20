@@ -73,7 +73,7 @@ styles: [`
     border: 1px solid #ddd;
     border-radius: 5px;
     text-align: center;
-    width: 24rem;
+    width: 22rem;
     height: 20rem;
     }
     .recommendations-content {

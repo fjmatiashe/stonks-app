@@ -108,8 +108,7 @@ import { CarteraService, Holding, Manager } from '../../services/cartera.service
       padding: 8px 12px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      width: 100%;
-      max-width: 300px;
+      width: 19rem;
     }
     .portfolio-table {
       width: 100%;

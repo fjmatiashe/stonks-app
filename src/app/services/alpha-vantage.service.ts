@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-// import { enviroment } from '../src/environments/enviroment';
 import { environment } from '../../enviroments/enviroment';
 
 @Injectable({
@@ -11,6 +10,9 @@ export class AlphaVantageService {
   // alphavantage.com
   private readonly BASE_URL = 'https://www.alphavantage.co/query';
   private readonly API_KEY = environment.alphavantageApiKey;
+  // Finnhub.io
+  private readonly BASE_FIN_URL = 'https://finnhub.io/api/v1';
+  private readonly API_FIN_KEY = environment.finhubApiKey;
   // profit.com
   private readonly BASE_PROFIT_URL = 'https://api.profit.com/data-api/';
   private readonly API_TOKEN = environment.profitApiToken;
@@ -25,10 +27,18 @@ export class AlphaVantageService {
     );
   }
 
-  searchSymbols(keywords: string): Observable<any> {
-    return this.http.get(
-      `${this.BASE_URL}?function=SYMBOL_SEARCH&keywords=${keywords}&apikey=${this.API_KEY}`
-    );
+  // searchSymbols(keywords: string): Observable<any> {
+  //   return this.http.get(
+  //     `${this.BASE_URL}?function=SYMBOL_SEARCH&keywords=${keywords}&apikey=${this.API_KEY}`
+  //   );
+  // }
+  // Método para buscar símbolos usando el endpoint de Finnhub
+  searchSymbols(query: string, exchange?: string): Observable<any> {
+    let url = `${this.BASE_FIN_URL}/search?q=${query}&token=${this.API_FIN_KEY}`;
+    if (exchange) {
+      url += `&exchange=${exchange}`;
+    }
+    return this.http.get(url);
   }
 
   getMarketStatus(): Observable<any> {

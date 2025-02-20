@@ -17,7 +17,7 @@ template: `
     <div class="chart-mode-selector">
     <label>
         <input type="radio" name="chartMode" value="absolute" [(ngModel)]="chartMode">
-        Absoluto
+        3000 días
     </label>
     &nbsp;&nbsp;
     <label>
