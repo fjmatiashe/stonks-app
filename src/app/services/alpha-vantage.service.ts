@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../enviroments/enviroment';
 
 @Injectable({
@@ -15,23 +16,38 @@ export class AlphaVantageService {
   private readonly API_FIN_KEY = environment.finhubApiKey;
   // profit.com
   private readonly BASE_PROFIT_URL = 'https://api.profit.com/data-api/';
-  private readonly API_TOKEN = environment.profitApiToken;
-
+  private profitApiTokens: string[] = environment.profitApiTokens;
+  private currentTokenIndex = 0;
 
   constructor(private http: HttpClient) {}
 
-  //en desuso (alpha vantage)
+
+//--------------------------------ALPHA VANTAGE--------------------------------
+
+  //Devuelve info de accion (en desuso)
   getStockData(symbol: string): Observable<any> {
     return this.http.get(
       `${this.BASE_URL}?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=${symbol}&apikey=${this.API_KEY}`
     );
   }
 
-  // searchSymbols(keywords: string): Observable<any> {
-  //   return this.http.get(
-  //     `${this.BASE_URL}?function=SYMBOL_SEARCH&keywords=${keywords}&apikey=${this.API_KEY}`
-  //   );
-  // }
+  //Devuelve datos de los mercados
+  getMarketStatus(): Observable<any> {
+    return this.http.get(
+      `${this.BASE_URL}?function=MARKET_STATUS&apikey=${this.API_KEY}`
+    );
+  }
+
+  //Devuelve busqueda (en desuso)
+  searchSymbols2(keywords: string): Observable<any> {
+    return this.http.get(
+      `${this.BASE_URL}?function=SYMBOL_SEARCH&keywords=${keywords}&apikey=${this.API_KEY}`
+    );
+  }
+
+
+//-------------------------------FINHUB-------------------------------
+
   // Método para buscar símbolos usando el endpoint de Finnhub
   searchSymbols(query: string, exchange?: string): Observable<any> {
     let url = `${this.BASE_FIN_URL}/search?q=${query}&token=${this.API_FIN_KEY}`;
@@ -41,64 +57,63 @@ export class AlphaVantageService {
     return this.http.get(url);
   }
 
-  getMarketStatus(): Observable<any> {
-    return this.http.get(
-      `${this.BASE_URL}?function=MARKET_STATUS&apikey=${this.API_KEY}`
+
+//--------------------------------PROFIT--------------------------------
+
+  //Cambia el token si da 429
+  private getCurrentProfitToken(): string {
+    return this.profitApiTokens[this.currentTokenIndex];
+  }
+
+  private profitApiGet<T>(url: string): Observable<T> {
+    const token = this.getCurrentProfitToken();
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    // Reemplaza el token en la URL con el actual
+    const finalUrl = url.replace(/token=[^&]+/, `token=${token}`);
+    return this.http.get<T>(finalUrl, { headers }).pipe(
+      catchError(error => {
+        if (error.status === 429) {
+          // Error 429: límite excedido. Cambia al siguiente token.
+          this.currentTokenIndex = (this.currentTokenIndex + 1) % this.profitApiTokens.length;
+          const newToken = this.getCurrentProfitToken();
+          const newUrl = url.replace(/token=[^&]+/, `token=${newToken}`);
+          const newHeaders = new HttpHeaders({ Authorization: `Bearer ${newToken}` });
+          // Reintenta la solicitud con el nuevo token.
+          return this.http.get<T>(newUrl, { headers: newHeaders });
+        }
+        return throwError(error);
+      })
     );
   }
 
+  // Ejemplo para obtener datos históricos usando el helper
   getHistoricalDailyData(ticker: string, startDate: string, endDate: string): Observable<any> {
-    console.log(`📅 Obteniendo datos históricos para ${ticker} desde ${startDate} hasta ${endDate}`);
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${this.API_TOKEN}`
-    });
-    return this.http.get<any>(
-      `${this.BASE_PROFIT_URL}market-data/historical/daily/${ticker}?token=${this.API_TOKEN}&start_date=${startDate}&end_date=${endDate}`,
-      { headers }
-    );
+    const url = `${this.BASE_PROFIT_URL}market-data/historical/daily/${ticker}?token=${this.getCurrentProfitToken()}&start_date=${startDate}&end_date=${endDate}`;
+    return this.profitApiGet<any>(url);
   }
 
+  // Ejemplo para obtener recomendaciones de analistas
   getAnalystRecommendations(ticker: string): Observable<any> {
-    console.log(`📊 Obteniendo recomendaciones de analistas para ${ticker}`);
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${this.API_TOKEN}`
-    });
-    return this.http.get<any>(
-      `${this.BASE_PROFIT_URL}fundamentals/stocks/analysts_recommendations/${ticker}?token=${this.API_TOKEN}`,
-      { headers }
-    );
+    const url = `${this.BASE_PROFIT_URL}fundamentals/stocks/analysts_recommendations/${ticker}?token=${this.getCurrentProfitToken()}`;
+    return this.profitApiGet<any>(url);
   }
 
-    getIncomeStatement(ticker: string): Observable<any> {
-      console.log(`📄 Obteniendo Income Statement para ${ticker}`);
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${this.API_TOKEN}`
-      });
-      return this.http.get<any>(
-        `${this.BASE_PROFIT_URL}fundamentals/stocks/income_statement/${ticker}?token=${this.API_TOKEN}`,
-        { headers }
-      );
-    }
-  
-    getEPSHistorical(ticker: string): Observable<any> {
-      console.log(`📊 Obteniendo EPS Historical para ${ticker}`);
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${this.API_TOKEN}`
-      });
-      return this.http.get<any>(
-        `${this.BASE_PROFIT_URL}fundamentals/stocks/eps_historical/${ticker}?token=${this.API_TOKEN}`,
-        { headers }
-      );
-    }
-  
-    getEPSTrends(ticker: string): Observable<any> {
-      console.log(`📈 Obteniendo EPS Trends para ${ticker}`);
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${this.API_TOKEN}`
-      });
-      return this.http.get<any>(
-        `${this.BASE_PROFIT_URL}fundamentals/stocks/eps_trends/${ticker}?token=${this.API_TOKEN}`,
-        { headers }
-      );
-    }
+  // Ejemplo para Income Statement
+  getIncomeStatement(ticker: string): Observable<any> {
+    const url = `${this.BASE_PROFIT_URL}fundamentals/stocks/income_statement/${ticker}?token=${this.getCurrentProfitToken()}`;
+    return this.profitApiGet<any>(url);
+  }
+
+  // Ejemplo para EPS Historical
+  getEPSHistorical(ticker: string): Observable<any> {
+    const url = `${this.BASE_PROFIT_URL}fundamentals/stocks/eps_historical/${ticker}?token=${this.getCurrentProfitToken()}`;
+    return this.profitApiGet<any>(url);
+  }
+
+  // Ejemplo para EPS Trends
+  getEPSTrends(ticker: string): Observable<any> {
+    const url = `${this.BASE_PROFIT_URL}fundamentals/stocks/eps_trends/${ticker}?token=${this.getCurrentProfitToken()}`;
+    return this.profitApiGet<any>(url);
+  }
+
 }

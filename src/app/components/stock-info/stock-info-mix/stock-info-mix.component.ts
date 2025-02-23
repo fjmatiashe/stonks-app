@@ -41,12 +41,14 @@ template: `
     </ng-container>
 `,
 styles: [`
+    h1 { text-align: center; font-family: Arial, sans-serif;}
     .title { text-align: center; }
     .data-columns {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     margin-top: 1rem;
+    font-family: Arial, sans-serif;
     }
     .error { color: red; font-weight: bold; text-align: center; }
 `]

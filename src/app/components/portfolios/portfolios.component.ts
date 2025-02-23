@@ -74,7 +74,7 @@ import { CarteraService, Holding, Manager } from '../../services/cartera.service
     .portfolio-container {
       margin: 40px auto;
       max-width: 1200px;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-family: Arial, sans-serif;
       padding: 20px;
       background-color: #ffffff;
       border-radius: 8px;

@@ -47,6 +47,7 @@ import { AlphaVantageService } from './services/alpha-vantage.service';
     </main>
   `,
   styles: [`
+  
     .container {
       max-width: 1200px;
       margin: 2rem auto;
