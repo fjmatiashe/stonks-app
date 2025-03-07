@@ -22,6 +22,7 @@ export class CarteraService {
   private carteraUrl = 'http://localhost:3000/api/cartera';
   private managersUrl = 'http://localhost:3000/api/managers';
   private homeListsUrl = 'http://localhost:3000/api/home-lists';
+  private analystsUrl = 'http://localhost:3000/api/analysts';
 
   constructor(private http: HttpClient) {}
 
@@ -35,5 +36,9 @@ export class CarteraService {
 
   getHomeLists(): Observable<any> {
     return this.http.get<any>(this.homeListsUrl);
+  }
+
+  getAnalysts(): Observable<any> {
+    return this.http.get<any>(this.analystsUrl);
   }
 }

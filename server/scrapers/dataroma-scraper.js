@@ -1,6 +1,5 @@
-// scraper.js
-const axios = require('axios');
-const cheerio = require('cheerio');
+import axios from 'axios';
+import { load } from 'cheerio';
 
 const getHoldings = async (ticker) => {
   try {
@@ -8,7 +7,7 @@ const getHoldings = async (ticker) => {
     console.log(`Obteniendo datos de: ${url}`);
 
     const { data } = await axios.get(url);
-    const $ = cheerio.load(data);
+    const $ = load(data);
     const holdings = [];
 
     $('table#grid tbody tr').each((index, element) => {
@@ -35,7 +34,7 @@ const getManagers = async () => {
     console.log(`Obteniendo datos de: ${url}`);
 
     const { data } = await axios.get(url);
-    const $ = cheerio.load(data);
+    const $ = load(data);
     const managers = [];
 
     $('table').first().find('tr').each((index, element) => {
@@ -68,7 +67,7 @@ const getHomeLists = async () => {
 
     const { data } = await axios.get(url);
     console.log(`Longitud del HTML recibido: ${data.length}`);
-    const $ = cheerio.load(data);
+    const $ = load(data);
     const lists = {};
 
     // Actualizamos el mapping para que coincida con la estructura real
@@ -136,4 +135,4 @@ const getHomeLists = async () => {
   }
 };
 
-module.exports = { getHoldings, getManagers, getHomeLists };
+export { getHoldings, getManagers, getHomeLists };

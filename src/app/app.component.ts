@@ -6,20 +6,22 @@ import { MarketStatusComponent } from './components/market-status/market-status.
 import { AboutMeComponent } from './components/about-me/about-me.component';
 import { PortfoliosComponent } from './components/portfolios/portfolios.component';
 import { StockInfoMixComponent } from './components/stock-info/stock-info-mix/stock-info-mix.component';
-import { AlphaVantageService } from './services/alpha-vantage.service';
+import { AlphaVantageService } from './services/api.service';
+import { RecommendedStocksComponent } from './components/recommended/recommended.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule, 
-    HeaderComponent, 
-    SearchComponent, 
-    MarketStatusComponent, 
-    AboutMeComponent, 
+    CommonModule,
+    HeaderComponent,
+    SearchComponent,
+    MarketStatusComponent,
+    AboutMeComponent,
     PortfoliosComponent,
     StockInfoMixComponent,
-  ],
+    RecommendedStocksComponent,
+],
   template: `
     <app-header (navigate)="onNavigate($event)"></app-header>
     <main class="container">
@@ -30,6 +32,10 @@ import { AlphaVantageService } from './services/alpha-vantage.service';
           [ticker]="selectedSymbol" 
           [stockName]="selectedStockName">
         </app-stock-info-mix>
+      </ng-container>
+
+      <ng-container *ngIf="selectedView === 'recommended'">
+        <app-recommended></app-recommended>
       </ng-container>
 
       <ng-container *ngIf="selectedView === 'portfolios'">

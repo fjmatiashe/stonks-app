@@ -19,10 +19,10 @@ template: `
     <div class="recommendations-content" *ngIf="recommendation; else noRecTpl">
         <div class="recommendations-donut">
         <svg width="150" height="150" viewBox="0 0 42 42" class="donut">
-            <circle class="donut-hole" cx="21" cy="21" r="15.91549431" fill="#fff"></circle>
-            <circle class="donut-ring" cx="21" cy="21" r="15.91549431" fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
+            <circle class="donut-hole" cx="21" cy="21" r="16" fill="#fff"></circle>
+            <circle class="donut-ring" cx="21" cy="21" r="16" fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
             <ng-container *ngFor="let segment of donutData; let i = index">
-            <circle class="donut-segment" cx="21" cy="21" r="15.91549431"
+            <circle class="donut-segment" cx="21" cy="21" r="16"
                 [attr.stroke]="segment.color" stroke-width="3" fill="transparent"
                 [attr.stroke-dasharray]="(segment.percent * 100) + ' ' + (100 - segment.percent * 100)"
                 [attr.stroke-dashoffset]="calculateDonutOffset(i)">

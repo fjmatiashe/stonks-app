@@ -38,8 +38,8 @@ styles: [`
         padding: 0.5rem; 
         border: 1px solid #ddd; 
         border-radius: 5px; 
-        width: 29.6rem;
-        height: 20rem;
+        max-width: 29.6rem;
+        max-height: 20rem;
     }
     .fundamentals-grid {
         display: grid;

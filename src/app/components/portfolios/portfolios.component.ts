@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CarteraService, Holding, Manager } from '../../services/cartera.service';
+import { CarteraService, Holding, Manager } from '../../services/server.service';
 
 @Component({
   selector: 'app-portfolios',

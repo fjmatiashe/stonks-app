@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AlphaVantageService } from '../../services/alpha-vantage.service';
+import { AlphaVantageService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 
 @Component({

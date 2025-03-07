@@ -3,7 +3,7 @@ import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { AlphaVantageService } from '../../../services/alpha-vantage.service';
+import { AlphaVantageService } from '../../../services/api.service';
 
 import { StockChartComponent, HistoricalData } from '../stock-chart/stock-chart.component';
 import { HistoricalDataComponent } from '../historical-data/historical-data.component';

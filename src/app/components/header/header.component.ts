@@ -7,8 +7,9 @@ import { Component, EventEmitter, Output } from '@angular/core';
     <header class="header">
       <h1>LOS STONKS</h1>
       <nav>
-        <button (click)="onNavigate('stocks')">BUSCADOR MIX</button>
-        <button (click)="onNavigate('portfolios')">CARTERAS DE DATAROMA</button>
+        <button (click)="onNavigate('stocks')">BUSCADOR</button>
+        <button (click)="onNavigate('recommended')">MAS RECOMENDADAS</button>
+        <button (click)="onNavigate('portfolios')">CARTERAS DE EXPERTOS</button>
         <button (click)="onNavigate('markets')">MERCADOS</button>
         <button (click)="onNavigate('about')">SOBRE MI</button>
       </nav>

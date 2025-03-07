@@ -2,7 +2,7 @@
 import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AlphaVantageService } from '../../services/alpha-vantage.service';
+import { AlphaVantageService } from '../../services/api.service';
 
 @Component({
   selector: 'app-search',
