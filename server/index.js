@@ -50,7 +50,7 @@ app.get('/api/home-lists', async (req, res) => {
 app.get('/api/analysts', async (req, res) => {
   console.log("Se ha recibido una petición a /api/analysts (MarketBeat)");
   try {
-    const limit = pLimit(10); 
+    const limit = pLimit(40);
     // const allStocks = [...sp500, ...europeanStocks, ...globalStocks];
     const promises = sp500.map(stock => {
       return limit(async () => {

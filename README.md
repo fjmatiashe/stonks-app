@@ -1,63 +1,58 @@
-<<<<<<< HEAD
-# stonks-app
-=======
-# AlphaVantageNg19
+# stonks-app / AlphaVantageNg19
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.5.
+Esta aplicación de bolsa, desarrollada con **Angular 19** y **Node.js**, te permite explorar el mercado bursátil de manera integral. Podrás buscar acciones, consultar las mejores recomendaciones del S&P500, conocer las carteras de famosos inversores (a través de scraping de Dataroma), verificar el estado de los mercados y leer más sobre el desarrollador.
+
+## Características Principales
+
+- **Buscador de Acciones:**  
+  Busca cualquier acción y accede a información detallada sobre la misma.
+
+- **Acciones Más Recomendadas:**  
+  Visualiza las acciones mejor valoradas del S&P500.
+
+- **Carteras de Expertos:**  
+  Consulta las carteras de famosos inversores, obtenidas mediante scraping desde Dataroma.
+
+- **Mercados:**  
+  Revisa si los mercados están abiertos o cerrados.
+
+- **Sobre Mí:**  
+  Conoce más acerca del desarrollador y la inspiración detrás de la aplicación.
+
+## Requisitos
+
+- **Node.js:**  
+  Asegúrate de tener instalada una versión reciente de Node.js.
+
+- **Angular CLI:**  
+  La aplicación fue generada usando Angular CLI v19.1.5. Si aún no lo tienes, instálalo globalmente:
+  ```bash
+  npm install -g @angular/cli
 
 ## Development server
 
-To start a local development server, run:
+Para ejecutar la app:
 
 ```bash
 ng serve
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
 ```bash
-ng generate component component-name
+cd server
+```
+```bash
+node index.js
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
+Luego ve a `http://localhost:4200/`.
 
 ## Building
 
-To build the project run:
+Para buildear la app:
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
 ## Additional Resources
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
->>>>>>> 467af73 (adding local repo)
+Para mas info, visita [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) .
