@@ -1,6 +1,7 @@
+// src/app/components/recommended/recommended.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CarteraService } from '../../services/server.service';
+import { CarteraService, AnalystData } from '../../services/server.service';
 
 @Component({
 selector: 'app-recommended',
@@ -18,14 +19,33 @@ template: `
     <div class="card-list" *ngIf="!loading && recommendedStocks.length">
         <div class="card" *ngFor="let stock of recommendedStocks">
         <div class="card-header">
-            <h2>{{ stock.ticker }} - {{ stock.name }}</h2>
+            <h2>{{ stock.ticker }} - {{ stock.name || stock.ticker }}</h2>
             <span class="exchange">{{ stock.exchange }}</span>
         </div>
         <div class="card-body">
-            <p class="rating">Rating: <strong>{{ stock.rating | number:'1.2-2' }}</strong></p>
-            <div class="opinions">
+            <p class="rating">
+            Rating: <strong>{{ stock.rating | number:'1.2-2' }}</strong>
+            </p>
+            <div class="opinions" *ngIf="stock.opinions">
             <p *ngFor="let key of opinionKeys()">
                 <strong>{{ key | titlecase }}:</strong> {{ stock.opinions[key] }}
+            </p>
+            </div>
+            <div class="fundamentals" *ngIf="stock.stockData">
+            <p>
+                <strong>Trailing P/E:</strong> {{ stock.stockData.trailingPE || 'N/A' }}
+            </p>
+            <p>
+                <strong>Forward P/E:</strong> {{ stock.stockData.forwardPE || 'N/A' }}
+            </p>
+            <p>
+                <strong>Avg Price Target:</strong> {{ stock.stockData.averagePriceTarget != null ? (stock.stockData.averagePriceTarget | number:'1.2-2') : 'N/A' }}
+            </p>
+            <p>
+                <strong>Upside/Downside:</strong> {{ stock.stockData.potentialUpside != null ? (stock.stockData.potentialUpside / 100 | percent:'1.0-2') : 'N/A' }}
+            </p>
+            <p>
+                <strong>Net Margins:</strong> {{ stock.stockData.netMargins || 'N/A' }}
             </p>
             </div>
         </div>
@@ -88,75 +108,86 @@ styles: [`
     font-weight: bold;
     color: #333;
     }
-    .opinions p {
+    .opinions p,
+    .fundamentals p {
     margin: 0;
     padding: 2px 0;
     }
 `]
 })
 export class RecommendedStocksComponent implements OnInit {
-recommendedStocks: any[] = [];
+recommendedStocks: AnalystData[] = [];
 loading = true;
 
 constructor(private carteraService: CarteraService) {}
 
 ngOnInit(): void {
-    this.carteraService.getAnalysts().subscribe({
+    this.carteraService.getFullAnalysts().subscribe({
     next: (data) => {
-        console.log('data', data);
-        let stocks: any[] = [];
-        if (Array.isArray(data)) {
-        stocks = data;
-        } else if (data && data.stocks && Array.isArray(data.stocks)) {
-        stocks = data.stocks;
-        } else if (data && typeof data === 'object') {
-        stocks = Object.values(data);
-        }
+        let stocks: AnalystData[] = Array.isArray(data) ? data : [];
+        console.log(data);
 
-        // Filtrar stocks con menos de 8 opiniones en total
-        stocks = stocks.filter((stock: any) => {
-        if (stock.opinions) {
-            const compra = Number(stock.opinions.compra) || 0;
-            const mantener = Number(stock.opinions.mantener) || 0;
-            const venta = Number(stock.opinions.venta) || 0;
-            const total = compra + mantener + venta;
-            return total >= 8;
-        }
-        return false;
-        });
-
-        // Calcular rating para cada acción usando "compra", "mantener" y "venta"
-        stocks.forEach((stock: any) => {
-        if (stock.opinions) {
-            const compra = Number(stock.opinions.compra) || 0;
-            const mantener = Number(stock.opinions.mantener) || 0;
-            const venta = Number(stock.opinions.venta) || 0;
-            const total = compra + mantener + venta;
-            
-            if (total > 0) {
-            const percentCompra = (compra / total) * 100;
-            const percentVenta = (venta / total) * 100;
-            stock.rating = percentCompra - percentVenta;
-            } else {
-            stock.rating = 0;
+        // Aplanar estructura de opiniones
+        stocks.forEach((stock) => {
+            if (stock.opinions && (stock.opinions as any).opinions) {
+                stock.opinions = (stock.opinions as any).opinions;
             }
-        }
         });
 
-        // Filtrar duplicados: conservar solo la acción única por ticker (la de mayor rating)
-        const uniqueStocks: { [ticker: string]: any } = {};
-        stocks.forEach((stock: any) => {
-        if (stock.ticker) {
-            if (!uniqueStocks[stock.ticker] || stock.rating > uniqueStocks[stock.ticker].rating) {
-            uniqueStocks[stock.ticker] = stock;
+        // Filtrar acciones con al menos 0 opiniones
+        stocks = stocks.filter((stock) => {
+            if (stock.opinions) {
+                const { compra = 0, mantener = 0, venta = 0 } = stock.opinions;
+                const total = compra + mantener + venta;
+                return total >= 0;
             }
-        }
+            return false;
         });
 
-        // Ordenar de mayor a menor rating y tomar solo las 50 primeras
+        // Normalizar propiedades y calcular rating
+        stocks.forEach((stock) => {
+            if (stock.opinions) {
+                const { compra = 0, mantener = 0, venta = 0 } = stock.opinions;
+                const total = compra + mantener + venta;
+                stock.rating = total > 0 ? ((compra / total) * 100 - (venta / total) * 100) : 0;
+            }
+
+            if (!stock.name) {
+                stock.name = stock.ticker;
+            }
+
+            if (stock.stockData) {
+                const raw = stock.stockData as any;
+                stock.stockData.averagePriceTarget = parseFloat(
+                    typeof raw.averageStockPriceTarget === 'string'
+                        ? raw.averageStockPriceTarget.replace(/[^0-9.-]/g, '')
+                        : raw.averageStockPriceTarget
+                );
+
+                stock.stockData.potentialUpside = parseFloat(
+                    typeof raw.potentialUpsideDownside === 'string'
+                        ? raw.potentialUpsideDownside.replace(/[^0-9.-]/g, '')
+                        : raw.potentialUpsideDownside
+                );
+            }
+
+            console.log("StockData for", stock.ticker, stock.stockData);
+        });
+
+        // Filtrar duplicados
+        const uniqueStocks: { [ticker: string]: AnalystData } = {};
+        stocks.forEach((stock) => {
+            if (stock.ticker) {
+                if (!uniqueStocks[stock.ticker] || (stock.rating || 0) > (uniqueStocks[stock.ticker].rating || 0)) {
+                    uniqueStocks[stock.ticker] = stock;
+                }
+            }
+        });
+
+        // Ordenar y limitar a 50
         this.recommendedStocks = Object.values(uniqueStocks)
-        .sort((a: any, b: any) => b.rating - a.rating)
-        .slice(0, 50);
+            .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+            .slice(0, 50);
 
         this.loading = false;
     },
@@ -167,7 +198,7 @@ ngOnInit(): void {
     });
 }
 
-opinionKeys(): string[] {
+opinionKeys(): ('compra' | 'mantener' | 'venta')[] {
     return ['compra', 'mantener', 'venta'];
 }
 }

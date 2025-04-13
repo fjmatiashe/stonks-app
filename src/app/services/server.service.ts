@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { tap, shareReplay } from 'rxjs/operators';
 
 export interface Holding { 
   stock: string; 
@@ -15,6 +16,30 @@ export interface Manager {
   ticker: string;
 }
 
+export interface StockData {
+  trailingPE?: number;
+  forwardPE?: number;
+  averagePriceTarget?: number;
+  potentialUpside?: number;
+  netMargins?: number;
+  // otros campos...
+}
+
+export interface AnalystData {
+  ticker: string;
+  name?: string;
+  exchange?: string;
+  rating?: number;
+  opinions?: {
+      compra?: number;
+      mantener?: number;
+      venta?: number;
+  };
+  stockData?: StockData;
+}
+
+
+
 @Injectable({
   providedIn: 'root'
 })
@@ -22,9 +47,18 @@ export class CarteraService {
   private carteraUrl = 'http://localhost:3000/api/cartera';
   private managersUrl = 'http://localhost:3000/api/managers';
   private homeListsUrl = 'http://localhost:3000/api/home-lists';
-  private analystsUrl = 'http://localhost:3000/api/analysts';
+  private fullAnalystsUrl = 'http://localhost:3000/api/full-analysts';
 
-  constructor(private http: HttpClient) {}
+  private fullAnalysts$: Observable<AnalystData[]>;
+
+  private scrapperLoadedSubject = new BehaviorSubject<boolean>(false);
+  scrapperLoaded$ = this.scrapperLoadedSubject.asObservable();
+
+  constructor(private http: HttpClient) {
+    this.fullAnalysts$ = this.http.get<AnalystData[]>(this.fullAnalystsUrl).pipe(
+      shareReplay(1)
+    );
+  }
 
   getCartera(ticker: string): Observable<Holding[]> {
     return this.http.get<Holding[]>(`${this.carteraUrl}/${ticker}`);
@@ -38,7 +72,9 @@ export class CarteraService {
     return this.http.get<any>(this.homeListsUrl);
   }
 
-  getAnalysts(): Observable<any> {
-    return this.http.get<any>(this.analystsUrl);
+  getFullAnalysts(): Observable<AnalystData[]> {
+    return this.fullAnalysts$.pipe(
+      tap(() => this.scrapperLoadedSubject.next(true))
+    );
   }
 }
