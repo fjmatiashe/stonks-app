@@ -293,6 +293,7 @@ export const sp500 = [
     { ticker: "MDT", exchange: "NYSE" },
     { ticker: "MRK", exchange: "NYSE" },
     { ticker: "MET", exchange: "NYSE" },
+    { ticker: "META", exchange: "NASDAQ" },
     { ticker: "MTD", exchange: "NYSE" },
     { ticker: "MGM", exchange: "NYSE" },
     { ticker: "MCHP", exchange: "NASDAQ" },

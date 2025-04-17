@@ -22,6 +22,7 @@ export interface StockData {
   averagePriceTarget?: number;
   potentialUpside?: number;
   netMargins?: number;
+  price?: number;
   // otros campos...
 }
 
