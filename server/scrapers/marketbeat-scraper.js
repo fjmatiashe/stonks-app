@@ -14,6 +14,9 @@ const agent = new https.Agent({ keepAlive: true });
 const cache = new Map();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+
+//---------------------------------------Obtener opiniones analistas----------------------------------------
+
 const getMarketBeatAnalystOpinions = async (exchange, ticker, retryCount = 3) => {
 const cacheKey = `${exchange}:${ticker}`;
 if (cache.has(cacheKey)) {
@@ -61,6 +64,9 @@ while (attempts < retryCount) {
     }
 }
 };
+
+
+//---------------------------------------Obtener datos de la accion----------------------------------------
 
 const getMarketBeatStockData = async (exchange, ticker, retryCount = 3) => {
 const cacheKey = `${exchange}:${ticker}:stockData`;

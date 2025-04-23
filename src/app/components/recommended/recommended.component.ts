@@ -43,48 +43,40 @@ template: `
         <tr *ngFor="let stock of recommendedStocks">
             <td>{{ stock.ticker }}</td>
             <td>{{ stock.exchange }}</td>
-            <td>
-            {{ stock.stockData?.price != null
-                ? (stock.stockData?.price | number:'1.2-2')
-                : 'N/A' }}
-            </td>
+            <td>{{ stock.stockData?.price != null ? (stock.stockData!.price | number:'1.2-2') : 'N/A' }}</td>
             <td>{{ stock.rating | number:'1.2-2' }}</td>
             <td>{{ stock.opinions?.compra || 0 }}</td>
             <td>{{ stock.opinions?.mantener || 0 }}</td>
             <td>{{ stock.opinions?.venta || 0 }}</td>
-            <td>{{ stock.stockData?.trailingPE || 'N/A' }}</td>
-            <td>{{ stock.stockData?.forwardPE || 'N/A' }}</td>
-            <td>
-            {{ stock.stockData?.averagePriceTarget != null
-                ? (stock.stockData?.averagePriceTarget | number:'1.2-2')
-                : 'N/A' }}
-            </td>
-            <td>
-                {{ stock.stockData?.potentialUpside != null
-                ? ((stock.stockData?.potentialUpside! / 100) | percent:'1.0-2')
-                : 'N/A' }}
-            </td>
+            <td>{{ stock.stockData?.trailingPE != null ? (stock.stockData!.trailingPE | number:'1.2-2') : 'N/A' }}</td>
+            <td>{{ stock.stockData?.forwardPE != null ? (stock.stockData!.forwardPE | number:'1.2-2') : 'N/A' }}</td>
+            <td>{{ stock.stockData?.averagePriceTarget != null ? (stock.stockData!.averagePriceTarget | number:'1.2-2') : 'N/A' }}</td>
+            <td>{{ stock.stockData?.potentialUpside != null ? ((stock.stockData!.potentialUpside! / 100) | percent:'1.0-2') : 'N/A' }}</td>
             <td>{{ stock.stockData?.netMargins || 'N/A' }}</td>
         </tr>
         </tbody>
     </table>
     </div>
 `,
-styles: [`
+styles: [
+    `
     .container { margin: 20px; font-family: Arial, sans-serif; }
-    .title { text-align: center; margin-bottom: 20px; color: #333; }
-    .loading, .no-data { text-align: center; font-size: 18px; color: #555; }
-    .stocks-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .stocks-table th, .stocks-table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
-    .stocks-table th { cursor: pointer; background: #f4f4f4; position: relative; }
-    .stocks-table th:hover { background: #eaeaea; }
-`]
+    .title { text-align: center; margin-bottom: 20px; color: #2c3e50; font-size: 2rem; }
+    .loading, .no-data { text-align: center; font-size: 1.2rem; color: #7f8c8d; }
+    .stocks-table { width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .stocks-table th, .stocks-table td { padding: 12px; border: 1px solid #ecf0f1; }
+    .stocks-table th { background-color: #34495e; color: #ecf0f1; font-weight: bold; cursor: pointer; position: relative; }
+    .stocks-table th:hover { background-color: #2c3e50; }
+    .stocks-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+    .stocks-table tbody tr:hover { background-color: #ecf0f1; }
+    .stocks-table td { text-align: center; }
+    .stocks-table td:first-child, .stocks-table th:first-child { text-align: left; }
+    `
+]
 })
 export class RecommendedStocksComponent implements OnInit {
 recommendedStocks: AnalystData[] = [];
 loading = true;
-
-// Estado de ordenación
 sortEvent: SortEvent = { field: 'rating', direction: 'desc' };
 
 constructor(private carteraService: CarteraService) {}
@@ -96,67 +88,73 @@ ngOnInit(): void {
 private loadData(): void {
     this.carteraService.getFullAnalysts().subscribe({
     next: (data) => {
+        // Datos iniciales
         let stocks: AnalystData[] = Array.isArray(data) ? data : [];
 
-        // Aplanar estructura de opiniones
-        stocks.forEach(stock => {
-        if (stock.opinions && (stock.opinions as any).opinions) {
-            stock.opinions = (stock.opinions as any).opinions;
+        // Aplanar opiniones
+        stocks.forEach(s => {
+        if (s.opinions && (s.opinions as any).opinions) {
+            s.opinions = (s.opinions as any).opinions;
         }
         });
 
-        // Filtrar y calcular rating
-        stocks = stocks.filter(stock => {
-        if (stock.opinions) {
-            const { compra = 0, mantener = 0, venta = 0 } = stock.opinions;
-            const total = compra + mantener + venta;
-            stock.rating = total > 0 ? ((compra / total) * 100 - (venta / total) * 100) : 0;
-            return true;
-        }
-        return false;
+        // Filtrar solo con al menos 5 opiniones
+        stocks = stocks.filter(s => {
+        const { compra = 0, mantener = 0, venta = 0 } = s.opinions!;
+        return (compra + mantener + venta) >= 5;
         });
 
-        // Convertir strings a números y precio
-        stocks.forEach(stock => {
-        if (stock.stockData) {
-            const raw = stock.stockData as any;
-            // Price
-            stock.stockData.price = parseFloat(
-            typeof raw.price === 'string'
-                ? raw.price.replace(/[^0-9.-]/g, '')
-                : raw.price
-            );
-            // Avg Price Target
-            stock.stockData.averagePriceTarget = parseFloat(
-            typeof raw.averagePriceTarget === 'string'
-                ? raw.averagePriceTarget.replace(/[^0-9.-]/g, '')
-                : raw.averagePriceTarget
-            );
-            // Potential Upside
-            stock.stockData.potentialUpside = parseFloat(
-            typeof raw.potentialUpside === 'string'
-                ? raw.potentialUpside.replace(/[^0-9.-]/g, '')
-                : raw.potentialUpside
-            );
-        }
+        // Normalizar datos numéricos
+        stocks.forEach(s => {
+        if (!s.stockData) return;
+        const raw: any = s.stockData;
+        s.stockData.price = this.parseNumber(raw.price);
+        s.stockData.trailingPE = this.parseNumber(raw.trailingPE);
+        s.stockData.forwardPE = this.parseNumber(raw.forwardPE);
+        const avgRaw = raw.averagePriceTarget ?? raw.averageStockPriceTarget;
+        s.stockData.averagePriceTarget = this.parseNumber(avgRaw);
+        const upRaw = raw.potentialUpside ?? raw.potentialUpsideDownside;
+        s.stockData.potentialUpside = this.parseNumber(upRaw);
+        s.stockData.netMargins = raw.netMargins;
         });
 
-        // Filtrar duplicados
-        const unique: { [key: string]: AnalystData } = {};
-        stocks.forEach(stock => {
-        if (!unique[stock.ticker] || (stock.rating || 0) > (unique[stock.ticker].rating || 0)) {
-            unique[stock.ticker] = stock;
+        // Calcular rating combinado (70% analistas, 30% upside con tramos)(incluir crecimiento de beneficios en el futuro)
+        stocks.forEach(s => {
+        const { compra = 0, mantener = 0, venta = 0 } = s.opinions!;
+        const total = compra + mantener + venta;
+        const analystRatio = total ? (compra - venta) / total : 0;
+        const safeAnalyst = Math.max(0, Math.min(analystRatio, 1));
+        const analystPts = safeAnalyst * 70;
+
+        const upsideVal = s.stockData?.potentialUpside ?? 0;
+        let upsidePts = 0;
+        if (upsideVal > 0) {
+            if (upsideVal <= 10) {
+            upsidePts = (upsideVal / 10) * 15;
+            } else {
+            const clamped = Math.min(upsideVal, 100);
+            upsidePts = 15 + ((clamped - 10) / 90) * 15;
+            }
         }
+
+        s.rating = analystPts + upsidePts;
         });
+
+        // Filtrar duplicados manteniendo mejor rating
+        const unique = stocks.reduce<Record<string, AnalystData>>((acc, s) => {
+        const currentRating = s.rating ?? 0;
+        const existingRating = acc[s.ticker]?.rating ?? 0;
+        if (!acc[s.ticker] || currentRating > existingRating) {
+            acc[s.ticker] = s;
+        }
+        return acc;
+        }, {} as Record<string, AnalystData>);
 
         this.recommendedStocks = Object.values(unique);
         this.applySort();
         this.loading = false;
     },
-    error: err => {
-        console.error('Error al obtener datos de analistas:', err);
-        this.loading = false;
-    }
+    error: () => { this.loading = false; }
     });
 }
 
@@ -171,10 +169,9 @@ sortBy(field: string): void {
 }
 
 getSortIcon(field: string): string {
-    if (this.sortEvent.field === field) {
-    return this.sortEvent.direction === 'asc' ? '▲' : '▼';
-    }
-    return '';
+    return this.sortEvent.field === field
+    ? this.sortEvent.direction === 'asc' ? '▲' : '▼'
+    : '';
 }
 
 private applySort(): void {
@@ -185,36 +182,34 @@ private applySort(): void {
     if (aVal == null && bVal != null) return 1;
     if (aVal != null && bVal == null) return -1;
     if (aVal == null && bVal == null) return 0;
-    if (typeof aVal === 'string') {
-        const cmp = (aVal as string).localeCompare(bVal as string);
-        return direction === 'asc' ? cmp : -cmp;
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return aVal.localeCompare(bVal) * (direction === 'asc' ? 1 : -1);
     }
-    const diff = (aVal as number) - (bVal as number);
-    return direction === 'asc' ? diff : -diff;
+    return ((aVal as number) - (bVal as number)) * (direction === 'asc' ? 1 : -1);
     });
 }
 
-private getFieldValue(stock: AnalystData, field: string): string | number | null {
+private getFieldValue(stock: AnalystData, field: string): string | number | undefined {
     switch (field) {
     case 'ticker': return stock.ticker;
-    case 'exchange': return stock.exchange || '';
-    case 'price': return stock.stockData?.price ?? null;
-    case 'rating': return stock.rating ?? 0;
-    case 'compra': return stock.opinions?.compra ?? 0;
-    case 'mantener': return stock.opinions?.mantener ?? 0;
-    case 'venta': return stock.opinions?.venta ?? 0;
-    case 'trailingPE': return this.parseNumber(stock.stockData?.trailingPE);
-    case 'forwardPE': return this.parseNumber(stock.stockData?.forwardPE);
-    case 'averagePriceTarget': return stock.stockData?.averagePriceTarget ?? 0;
-    case 'potentialUpside': return stock.stockData?.potentialUpside ?? 0;
+    case 'exchange': return stock.exchange;
+    case 'price': return stock.stockData?.price;
+    case 'rating': return stock.rating;
+    case 'compra': return stock.opinions?.compra;
+    case 'mantener': return stock.opinions?.mantener;
+    case 'venta': return stock.opinions?.venta;
+    case 'trailingPE': return stock.stockData?.trailingPE;
+    case 'forwardPE': return stock.stockData?.forwardPE;
+    case 'averagePriceTarget': return stock.stockData?.averagePriceTarget;
+    case 'potentialUpside': return stock.stockData?.potentialUpside;
     case 'netMargins': return this.parseNumber(stock.stockData?.netMargins);
-    default: return null;
+    default: return undefined;
     }
 }
 
-private parseNumber(value: any): number | null {
-    if (value == null) return null;
-    const num = parseFloat(('' + value).replace(/[^0-9.-]/g, ''));
-    return isNaN(num) ? null : num;
+private parseNumber(value: any): number | undefined {
+    if (value == null) return undefined;
+    const num = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+    return isNaN(num) ? undefined : num;
 }
 }
