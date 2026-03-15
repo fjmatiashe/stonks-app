@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CarteraService, AnalystData } from '../../services/server.service';
+import { Subscription } from 'rxjs';
 
 interface SortEvent {
 field: string;
@@ -11,12 +12,12 @@ direction: 'asc' | 'desc';
 selector: 'app-recommended',
 standalone: true,
 imports: [CommonModule],
-template: `
+  template: `
     <div class="container">
     <h1 class="title">Acciones Más Recomendadas</h1>
 
     <div *ngIf="loading" class="loading">
-        Cargando datos del scrapper, esto puede tardar unos 20 segundos.
+        {{ progressText }}
     </div>
     <div *ngIf="!loading && !recommendedStocks.length" class="no-data">
         No se encontraron datos.
@@ -74,39 +75,68 @@ styles: [
     `
 ]
 })
-export class RecommendedStocksComponent implements OnInit {
+export class RecommendedStocksComponent implements OnInit, OnDestroy {
 recommendedStocks: AnalystData[] = [];
+// Variable temporal para guardar las acciones antes de mostrarlas de golpe
+private tempStocks: AnalystData[] = [];
 loading = true;
+progressText = 'Iniciando conexión...';
 sortEvent: SortEvent = { field: 'rating', direction: 'desc' };
+private streamSub!: Subscription;
 
 constructor(private carteraService: CarteraService) {}
 
 ngOnInit(): void {
-    this.loadData();
+    this.streamData();
 }
 
-private loadData(): void {
-    this.carteraService.getFullAnalysts().subscribe({
-    next: (data) => {
-        // Datos iniciales
-        let stocks: AnalystData[] = Array.isArray(data) ? data : [];
+ngOnDestroy(): void {
+    if (this.streamSub) {
+        this.streamSub.unsubscribe();
+    }
+}
 
-        // Aplanar opiniones
-        stocks.forEach(s => {
-        if (s.opinions && (s.opinions as any).opinions) {
-            s.opinions = (s.opinions as any).opinions;
+private streamData(): void {
+    this.streamSub = this.carteraService.getFullAnalystsStream().subscribe({
+    next: (event: any) => {
+        if (event.type === 'start') {
+            this.loading = true;
+            this.progressText = `Cargando 0 de ${event.total} acciones...`;
+        } else if (event.type === 'data') {
+            this.progressText = `Cargando ${event.completed} de ${event.total} acciones...`;
+            if (event.result && !event.result.error) {
+                this.processNewStock(event.result);
+            }
+        } else if (event.type === 'error') {
+            this.progressText = `Cargando ${event.completed} de ${event.total} acciones... (hubo un error con una acción)`;
+        } else if (event.type === 'done') {
+            this.loading = false;
+            // Cuando termina todo el stream, volcamos la info para que Angular renderice la vista de golpe
+            this.recommendedStocks = [...this.tempStocks];
+            this.applySort();
         }
-        });
+    },
+    error: (err) => { 
+        console.error('Error en el stream', err);
+        this.loading = false; 
+    }
+    });
+}
 
-        // Filtrar solo con al menos 5 opiniones
-        stocks = stocks.filter(s => {
-        const { compra = 0, mantener = 0, venta = 0 } = s.opinions!;
-        return (compra + mantener + venta) >= 5;
-        });
+private processNewStock(rawStock: any): void {
+    let s: AnalystData = rawStock;
 
-        // Normalizar datos numéricos
-        stocks.forEach(s => {
-        if (!s.stockData) return;
+    // Aplanar opiniones
+    if (s.opinions && (s.opinions as any).opinions) {
+        s.opinions = (s.opinions as any).opinions;
+    }
+
+    // Filtrar solo con al menos 5 opiniones
+    const { compra = 0, mantener = 0, venta = 0 } = s.opinions || {};
+    if ((compra + mantener + venta) < 5) return;
+
+    // Normalizar datos numéricos
+    if (s.stockData) {
         const raw: any = s.stockData;
         s.stockData.price = this.parseNumber(raw.price);
         s.stockData.trailingPE = this.parseNumber(raw.trailingPE);
@@ -116,46 +146,36 @@ private loadData(): void {
         const upRaw = raw.potentialUpside ?? raw.potentialUpsideDownside;
         s.stockData.potentialUpside = this.parseNumber(upRaw);
         s.stockData.netMargins = raw.netMargins;
-        });
+    }
 
-        // Calcular rating combinado (70% analistas, 30% upside con tramos)(incluir crecimiento de beneficios en el futuro)
-        stocks.forEach(s => {
-        const { compra = 0, mantener = 0, venta = 0 } = s.opinions!;
-        const total = compra + mantener + venta;
-        const analystRatio = total ? (compra - venta) / total : 0;
-        const safeAnalyst = Math.max(0, Math.min(analystRatio, 1));
-        const analystPts = safeAnalyst * 70;
+    // Calcular rating combinado (70% analistas, 30% upside con tramos)
+    const total = compra + mantener + venta;
+    const analystRatio = total ? (compra - venta) / total : 0;
+    const safeAnalyst = Math.max(0, Math.min(analystRatio, 1));
+    const analystPts = safeAnalyst * 70;
 
-        const upsideVal = s.stockData?.potentialUpside ?? 0;
-        let upsidePts = 0;
-        if (upsideVal > 0) {
-            if (upsideVal <= 10) {
+    const upsideVal = s.stockData?.potentialUpside ?? 0;
+    let upsidePts = 0;
+    if (upsideVal > 0) {
+        if (upsideVal <= 10) {
             upsidePts = (upsideVal / 10) * 15;
-            } else {
+        } else {
             const clamped = Math.min(upsideVal, 100);
             upsidePts = 15 + ((clamped - 10) / 90) * 15;
-            }
         }
+    }
 
-        s.rating = analystPts + upsidePts;
-        });
+    s.rating = analystPts + upsidePts;
 
-        // Filtrar duplicados manteniendo mejor rating
-        const unique = stocks.reduce<Record<string, AnalystData>>((acc, s) => {
-        const currentRating = s.rating ?? 0;
-        const existingRating = acc[s.ticker]?.rating ?? 0;
-        if (!acc[s.ticker] || currentRating > existingRating) {
-            acc[s.ticker] = s;
+    // Agregar o actualizar en la variable TEMPORAL
+    const existingIndex = this.tempStocks.findIndex(st => st.ticker === s.ticker);
+    if (existingIndex !== -1) {
+        if ((s.rating ?? 0) > (this.tempStocks[existingIndex].rating ?? 0)) {
+            this.tempStocks[existingIndex] = s;
         }
-        return acc;
-        }, {} as Record<string, AnalystData>);
-
-        this.recommendedStocks = Object.values(unique);
-        this.applySort();
-        this.loading = false;
-    },
-    error: () => { this.loading = false; }
-    });
+    } else {
+        this.tempStocks.push(s);
+    }
 }
 
 sortBy(field: string): void {

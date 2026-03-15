@@ -1,6 +1,12 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { load } from 'cheerio';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 puppeteer.use(StealthPlugin());
 
@@ -11,8 +17,37 @@ const recommendationMapping = {
 "Buy": "compra"
 };
 
-// Caché simple en memoria (clave: `${exchange}:${ticker}` o `${exchange}:${ticker}:stockData`)
-const cache = new Map();
+// Archivo de caché en disco
+const cacheFile = path.resolve(__dirname, 'cache.json');
+
+// Caché en memoria inicializada desde el archivo
+let cache = new Map();
+if (fs.existsSync(cacheFile)) {
+    try {
+        const rawData = fs.readFileSync(cacheFile, 'utf8');
+        const parsedData = JSON.parse(rawData);
+        cache = new Map(Object.entries(parsedData));
+        console.log(`[Cache] Cargados ${cache.size} elementos desde disco.`);
+    } catch (e) {
+        console.error('[Cache] Error al leer el archivo de caché', e);
+    }
+}
+
+// Función auxiliar para guardar la caché a disco de forma asíncrona
+let saveTimeout = null;
+function scheduleCacheSave() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            const obj = Object.fromEntries(cache);
+            fs.writeFileSync(cacheFile, JSON.stringify(obj, null, 2), 'utf8');
+            console.log(`[Cache] Guardada en disco con ${cache.size} elementos.`);
+        } catch (e) {
+            console.error('[Cache] Error al guardar en disco', e);
+        }
+    }, 5000); // Guardar en batch 5 segundos después del último cambio
+}
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 
@@ -84,6 +119,7 @@ while (attempts < retryCount) {
 
     const result = { ticker, name, exchange, opinions };
     cache.set(cacheKey, result);
+    scheduleCacheSave();
     return result;
     } catch (error) {
     attempts++;
@@ -167,6 +203,7 @@ while (attempts < retryCount) {
     });
 
     cache.set(cacheKey, stockData);
+    scheduleCacheSave();
     return stockData;
     } catch (error) {
     attempts++;

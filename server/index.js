@@ -47,40 +47,58 @@ app.get('/api/home-lists', async (req, res) => {
   }
 });
 
-app.get('/api/full-analysts', async (req, res) => {
-  console.log("Se ha recibido una petición a /api/full-analysts (MarketBeat combinado)");
-  try {
-    const limit = pLimit(5);
-    // Mapeamos los stocks del S&P500. Puedes descomentar y agregar otros arrays (europeanStocks, globalStocks)
-    const promises = sp500.map(stock => {
-      return limit(async () => {
-        try {
-          console.log(`Scrapeando datos para: ${stock.ticker} en ${stock.exchange}`);
-          // Ejecuta en paralelo ambas funciones para obtener opiniones y datos de stock
-          const [opinions, stockData] = await Promise.all([
-            getMarketBeatAnalystOpinions(stock.exchange, stock.ticker),
-            getMarketBeatStockData(stock.exchange, stock.ticker)
-          ]);
+app.get('/api/full-analysts-stream', (req, res) => {
+  console.log("Se ha recibido una petición a /api/full-analysts-stream");
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
 
-          return {
-            ticker: stock.ticker,
-            exchange: stock.exchange,
-            opinions,
-            stockData
-          };
-        } catch (error) {
-          console.error(`Error al obtener datos para ${stock.ticker}: ${error.message}`);
-          return { ticker: stock.ticker, exchange: stock.exchange, error: error.message };
-        }
-      });
+  const limit = pLimit(3);
+  let completed = 0;
+  const total = sp500.length;
+
+  res.write(`data: ${JSON.stringify({ type: 'start', total })}\n\n`);
+
+  const promises = sp500.map(stock => {
+    return limit(async () => {
+      try {
+        console.log(`Scrapeando datos para: ${stock.ticker} en ${stock.exchange}`);
+        const [opinions, stockData] = await Promise.all([
+          getMarketBeatAnalystOpinions(stock.exchange, stock.ticker),
+          getMarketBeatStockData(stock.exchange, stock.ticker)
+        ]);
+
+        const result = {
+          ticker: stock.ticker,
+          exchange: stock.exchange,
+          opinions,
+          stockData
+        };
+        completed++;
+        res.write(`data: ${JSON.stringify({ type: 'data', result, completed, total })}\n\n`);
+        return result;
+      } catch (error) {
+        console.error(`Error al obtener datos para ${stock.ticker}: ${error.message}`);
+        completed++;
+        const result = { ticker: stock.ticker, exchange: stock.exchange, error: error.message };
+        res.write(`data: ${JSON.stringify({ type: 'error', result, completed, total })}\n\n`);
+        return result;
+      }
     });
-    const resultados = await Promise.all(promises);
-    // console.log("Scraping combinado completado", resultados);
-    res.json(resultados);
-  } catch (error) {
-    console.error('Error en /api/full-analysts:', error.message);
-    res.status(500).send('Error al obtener datos completos de analistas y stock');
-  }
+  });
+
+  Promise.all(promises).then(() => {
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
+  }).catch(err => {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    res.end();
+  });
+
+  req.on('close', () => {
+    console.log("Cliente desconectado de /api/full-analysts-stream");
+  });
 });
 
 app.listen(PORT, () => {

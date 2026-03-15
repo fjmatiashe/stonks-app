@@ -25,36 +25,28 @@ import { Subscription } from 'rxjs';
     RecommendedStocksComponent,
   ],
   template: `
-    <ng-container *ngIf="!scrapperLoaded; else mainContent">
-      <div class="splash">
-        <h2>Iniciando el scrapper...</h2>
-        <p>Por favor, espera mientras se cargan los datos.</p>
-      </div>
-    </ng-container>
-    <ng-template #mainContent>
-      <app-header (navigate)="onNavigate($event)"></app-header>
-      <main class="container">
-        <ng-container *ngIf="selectedView === 'stocks'">
-          <app-search (search)="onSearch($event)"></app-search>
-          <app-stock-info-mix 
-            [ticker]="selectedSymbol" 
-            [stockName]="selectedStockName">
-          </app-stock-info-mix>
-        </ng-container>
-        <ng-container *ngIf="selectedView === 'recommended'">
-          <app-recommended></app-recommended>
-        </ng-container>
-        <ng-container *ngIf="selectedView === 'portfolios'">
-          <app-portfolios></app-portfolios>
-        </ng-container>
-        <ng-container *ngIf="selectedView === 'markets'">
-          <app-market-status></app-market-status>
-        </ng-container>
-        <ng-container *ngIf="selectedView === 'about'">
-          <app-about-me></app-about-me>
-        </ng-container>
-      </main>
-    </ng-template>
+    <app-header (navigate)="onNavigate($event)"></app-header>
+    <main class="container">
+      <ng-container *ngIf="selectedView === 'stocks'">
+        <app-search (search)="onSearch($event)"></app-search>
+        <app-stock-info-mix 
+          [ticker]="selectedSymbol" 
+          [stockName]="selectedStockName">
+        </app-stock-info-mix>
+      </ng-container>
+      <ng-container *ngIf="selectedView === 'recommended'">
+        <app-recommended></app-recommended>
+      </ng-container>
+      <ng-container *ngIf="selectedView === 'portfolios'">
+        <app-portfolios></app-portfolios>
+      </ng-container>
+      <ng-container *ngIf="selectedView === 'markets'">
+        <app-market-status></app-market-status>
+      </ng-container>
+      <ng-container *ngIf="selectedView === 'about'">
+        <app-about-me></app-about-me>
+      </ng-container>
+    </main>
   `,
   styles: [`
     .container {

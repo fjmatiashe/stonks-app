@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap, shareReplay } from 'rxjs/operators';
+import { NgZone } from '@angular/core';
 
 export interface Holding { 
   stock: string; 
@@ -48,18 +49,12 @@ export class CarteraService {
   private carteraUrl = 'http://localhost:3000/api/cartera';
   private managersUrl = 'http://localhost:3000/api/managers';
   private homeListsUrl = 'http://localhost:3000/api/home-lists';
-  private fullAnalystsUrl = 'http://localhost:3000/api/full-analysts';
-
-  private fullAnalysts$: Observable<AnalystData[]>;
+  private fullAnalystsStreamUrl = 'http://localhost:3000/api/full-analysts-stream';
 
   private scrapperLoadedSubject = new BehaviorSubject<boolean>(false);
   scrapperLoaded$ = this.scrapperLoadedSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    this.fullAnalysts$ = this.http.get<AnalystData[]>(this.fullAnalystsUrl).pipe(
-      shareReplay(1)
-    );
-  }
+  constructor(private http: HttpClient, private zone: NgZone) {}
 
   getCartera(ticker: string): Observable<Holding[]> {
     return this.http.get<Holding[]>(`${this.carteraUrl}/${ticker}`);
@@ -73,9 +68,32 @@ export class CarteraService {
     return this.http.get<any>(this.homeListsUrl);
   }
 
-  getFullAnalysts(): Observable<AnalystData[]> {
-    return this.fullAnalysts$.pipe(
-      tap(() => this.scrapperLoadedSubject.next(true))
-    );
+  getFullAnalystsStream(): Observable<any> {
+    return new Observable(observer => {
+      const eventSource = new EventSource(this.fullAnalystsStreamUrl);
+      
+      eventSource.onmessage = (event) => {
+        this.zone.run(() => {
+          const data = JSON.parse(event.data);
+          observer.next(data);
+          if (data.type === 'done') {
+            eventSource.close();
+            observer.complete();
+            this.scrapperLoadedSubject.next(true);
+          }
+        });
+      };
+      
+      eventSource.onerror = (error) => {
+        this.zone.run(() => {
+          eventSource.close();
+          observer.error(error);
+        });
+      };
+      
+      return () => {
+        eventSource.close();
+      };
+    });
   }
 }
