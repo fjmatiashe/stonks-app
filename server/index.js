@@ -2,9 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import { getHoldings, getManagers, getHomeLists } from './scrapers/dataroma-scraper.js';
 import { getMarketBeatAnalystOpinions, getMarketBeatStockData } from './scrapers/marketbeat-scraper.js';
-import {sp500} from './diccionarios/tickets-s&p.js';
-import {europeanStocks} from './diccionarios/tickets-europeos.js';
-import {globalStocks} from './diccionarios/tickets-globales.js';
+import { sp500 } from './diccionarios/tickets-s&p.js';
+import { europeanStocks } from './diccionarios/tickets-europeos.js';
+import { globalStocks } from './diccionarios/tickets-globales.js';
 import pLimit from 'p-limit';
 
 const app = express();
@@ -50,7 +50,7 @@ app.get('/api/home-lists', async (req, res) => {
 app.get('/api/full-analysts', async (req, res) => {
   console.log("Se ha recibido una petición a /api/full-analysts (MarketBeat combinado)");
   try {
-    const limit = pLimit(60);
+    const limit = pLimit(5);
     // Mapeamos los stocks del S&P500. Puedes descomentar y agregar otros arrays (europeanStocks, globalStocks)
     const promises = sp500.map(stock => {
       return limit(async () => {

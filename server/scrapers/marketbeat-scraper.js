@@ -1,6 +1,8 @@
-import axios from 'axios';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { load } from 'cheerio';
-import https from 'https';
+
+puppeteer.use(StealthPlugin());
 
 // Mapeo de los labels en inglés a claves en español
 const recommendationMapping = {
@@ -9,15 +11,43 @@ const recommendationMapping = {
 "Buy": "compra"
 };
 
-const agent = new https.Agent({ keepAlive: true });
 // Caché simple en memoria (clave: `${exchange}:${ticker}` o `${exchange}:${ticker}:stockData`)
 const cache = new Map();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 
+let globalBrowser = null;
+async function getBrowser() {
+    if (!globalBrowser) {
+        globalBrowser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+    }
+    return globalBrowser;
+}
+
+// Función auxiliar para obtener el HTML de una URL con Puppeteer
+async function getHtmlWithPuppeteer(url) {
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    
+    try {
+        await page.setViewport({ width: 1366, height: 768 });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+        
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        const html = await page.content();
+        return html;
+    } finally {
+        await page.close();
+    }
+}
+
+
 //---------------------------------------Obtener opiniones analistas----------------------------------------
 
-const getMarketBeatAnalystOpinions = async (exchange, ticker, retryCount = 3) => {
+const getMarketBeatAnalystOpinions = async (exchange, ticker, retryCount = 2) => {
 const cacheKey = `${exchange}:${ticker}`;
 if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -27,12 +57,14 @@ let attempts = 0;
 while (attempts < retryCount) {
     try {
     const url = `https://www.marketbeat.com/stocks/${exchange}/${ticker}/forecast/`;
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    };
-
-    const { data } = await axios.get(url, { headers, httpsAgent: agent });
+    
+    const data = await getHtmlWithPuppeteer(url);
     const $ = load(data);
+
+    // Verificamos si nos bloqueó Cloudflare a pesar del stealth
+    if ($('title').text().includes('Just a moment...')) {
+        throw new Error("Bloqueado por Cloudflare");
+    }
 
     // Extraer el nombre de la acción
     let name = $('h1').first().text().trim();
@@ -56,7 +88,7 @@ while (attempts < retryCount) {
     } catch (error) {
     attempts++;
     if (attempts < retryCount) {
-        await delay(100 * Math.pow(2, attempts));
+        await delay(2000 * Math.pow(2, attempts));
     } else {
         console.error(`Error en getMarketBeatAnalystOpinions tras ${attempts} intentos: ${error.message}`);
         throw new Error(`Error al obtener datos de MarketBeat: ${error.message}`);
@@ -68,7 +100,7 @@ while (attempts < retryCount) {
 
 //---------------------------------------Obtener datos de la accion----------------------------------------
 
-const getMarketBeatStockData = async (exchange, ticker, retryCount = 3) => {
+const getMarketBeatStockData = async (exchange, ticker, retryCount = 2) => {
 const cacheKey = `${exchange}:${ticker}:stockData`;
 if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -78,12 +110,13 @@ let attempts = 0;
 while (attempts < retryCount) {
     try {
     const url = `https://www.marketbeat.com/stocks/${exchange}/${ticker}`;
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    };
-
-    const { data } = await axios.get(url, { headers, httpsAgent: agent });
+    
+    const data = await getHtmlWithPuppeteer(url);
     const $ = load(data);
+
+    if ($('title').text().includes('Just a moment...')) {
+        throw new Error("Bloqueado por Cloudflare");
+    }
 
     // 1) Extraer solo el precio actual
     const priceText = $('div.d-inline-block.mb-2.mr-4')
@@ -138,7 +171,7 @@ while (attempts < retryCount) {
     } catch (error) {
     attempts++;
     if (attempts < retryCount) {
-        await delay(100 * Math.pow(2, attempts));
+        await delay(2000 * Math.pow(2, attempts));
     } else {
         console.error(`Error en getMarketBeatStockData tras ${attempts} intentos: ${error.message}`);
         throw new Error(`Error al obtener datos de MarketBeat: ${error.message}`);
